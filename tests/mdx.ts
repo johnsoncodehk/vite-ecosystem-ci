@@ -4,12 +4,9 @@ import type { RunOptions } from '../types.d.ts'
 export async function test(options: RunOptions) {
 	await runInRepo({
 		...options,
-		repo: 'sveltejs/vite-plugin-svelte',
+		agent: 'npm',
+		repo: 'mdx-js/mdx-analyzer',
 		branch: 'main',
-		overrides: {
-			svelte: 'latest',
-		},
-		beforeTest: 'pnpm playwright install chromium',
-		test: ['check:lint', 'check:types', 'test'],
+		test: 'test',
 	})
 }

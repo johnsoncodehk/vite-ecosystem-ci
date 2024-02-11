@@ -3,40 +3,30 @@ import path from 'path'
 import process from 'process'
 import { cac } from 'cac'
 
-import {
-	setupEnvironment,
-	setupViteRepo,
-	buildVite,
-	bisectVite,
-	parseViteMajor,
-	parseMajorVersion,
-} from './utils.ts'
+import { setupEnvironment, setupVolarRepo, buildVolar } from './utils.ts'
 import type { CommandOptions, RunOptions } from './types.d.ts'
 
 const cli = cac()
 cli
-	.command('[...suites]', 'build vite and run selected suites')
+	.command('[...suites]', 'build volar and run selected suites')
 	.option('--verify', 'verify checkouts by running tests', { default: false })
-	.option('--repo <repo>', 'vite repository to use', { default: 'vitejs/vite' })
-	.option('--branch <branch>', 'vite branch to use', { default: 'main' })
-	.option('--tag <tag>', 'vite tag to use')
-	.option('--commit <commit>', 'vite commit sha to use')
-	.option('--release <version>', 'vite release to use from npm registry')
+	.option('--repo <repo>', 'volar repository to use', {
+		default: 'volarjs/volar.js',
+	})
+	.option('--branch <branch>', 'volar branch to use', { default: 'master' })
+	.option('--tag <tag>', 'volar tag to use')
+	.option('--commit <commit>', 'volar commit sha to use')
+	.option('--release <version>', 'volar release to use from npm registry')
 	.action(async (suites, options: CommandOptions) => {
-		const { root, vitePath, workspace } = await setupEnvironment()
+		const { root, volarPath, workspace } = await setupEnvironment()
 		const suitesToRun = getSuitesToRun(suites, root)
-		let viteMajor
 		if (!options.release) {
-			await setupViteRepo(options)
-			await buildVite({ verify: options.verify })
-			viteMajor = parseViteMajor(vitePath)
-		} else {
-			viteMajor = parseMajorVersion(options.release)
+			await setupVolarRepo(options)
+			await buildVolar({ verify: options.verify })
 		}
 		const runOptions: RunOptions = {
 			root,
-			vitePath,
-			viteMajor,
+			volarPath,
 			workspace,
 			release: options.release,
 			verify: options.verify,
@@ -48,37 +38,40 @@ cli
 	})
 
 cli
-	.command('build-vite', 'build vite only')
-	.option('--verify', 'verify vite checkout by running tests', {
+	.command('build-volar', 'build volar only')
+	.option('--verify', 'verify volar checkout by running tests', {
 		default: false,
 	})
-	.option('--repo <repo>', 'vite repository to use', { default: 'vitejs/vite' })
-	.option('--branch <branch>', 'vite branch to use', { default: 'main' })
-	.option('--tag <tag>', 'vite tag to use')
-	.option('--commit <commit>', 'vite commit sha to use')
+	.option('--repo <repo>', 'volar repository to use', {
+		default: 'volarjs/volar.js',
+	})
+	.option('--branch <branch>', 'volar branch to use', { default: 'master' })
+	.option('--tag <tag>', 'volar tag to use')
+	.option('--commit <commit>', 'volar commit sha to use')
 	.action(async (options: CommandOptions) => {
 		await setupEnvironment()
-		await setupViteRepo(options)
-		await buildVite({ verify: options.verify })
+		await setupVolarRepo(options)
+		await buildVolar({ verify: options.verify })
 	})
 
 cli
-	.command('run-suites [...suites]', 'run single suite with pre-built vite')
+	.command('run-suites [...suites]', 'run single suite with pre-built volar')
 	.option(
 		'--verify',
-		'verify checkout by running tests before using local vite',
+		'verify checkout by running tests before using local volar',
 		{ default: false },
 	)
-	.option('--repo <repo>', 'vite repository to use', { default: 'vitejs/vite' })
-	.option('--release <version>', 'vite release to use from npm registry')
+	.option('--repo <repo>', 'volar repository to use', {
+		default: 'volarjs/volar.js',
+	})
+	.option('--release <version>', 'volar release to use from npm registry')
 	.action(async (suites, options: CommandOptions) => {
-		const { root, vitePath, workspace } = await setupEnvironment()
+		const { root, volarPath, workspace } = await setupEnvironment()
 		const suitesToRun = getSuitesToRun(suites, root)
 		const runOptions: RunOptions = {
 			...options,
 			root,
-			vitePath,
-			viteMajor: parseViteMajor(vitePath),
+			volarPath,
 			workspace,
 		}
 		for (const suite of suitesToRun) {
@@ -89,14 +82,16 @@ cli
 cli
 	.command(
 		'bisect [...suites]',
-		'use git bisect to find a commit in vite that broke suites',
+		'use git bisect to find a commit in volar that broke suites',
 	)
 	.option('--good <ref>', 'last known good ref, e.g. a previous tag. REQUIRED!')
 	.option('--verify', 'verify checkouts by running tests', { default: false })
-	.option('--repo <repo>', 'vite repository to use', { default: 'vitejs/vite' })
-	.option('--branch <branch>', 'vite branch to use', { default: 'main' })
-	.option('--tag <tag>', 'vite tag to use')
-	.option('--commit <commit>', 'vite commit sha to use')
+	.option('--repo <repo>', 'volar repository to use', {
+		default: 'volarjs/volar.js',
+	})
+	.option('--branch <branch>', 'volar branch to use', { default: 'master' })
+	.option('--tag <tag>', 'volar tag to use')
+	.option('--commit <commit>', 'volar commit sha to use')
 	.action(async (suites, options: CommandOptions & { good: string }) => {
 		if (!options.good) {
 			console.log(
@@ -104,20 +99,19 @@ cli
 			)
 			process.exit(1)
 		}
-		const { root, vitePath, workspace } = await setupEnvironment()
+		const { root, volarPath, workspace } = await setupEnvironment()
 		const suitesToRun = getSuitesToRun(suites, root)
 		let isFirstRun = true
 		const { verify } = options
 		const runSuite = async () => {
 			try {
-				await buildVite({ verify: isFirstRun && verify })
+				await buildVolar({ verify: isFirstRun && verify })
 				for (const suite of suitesToRun) {
 					await run(suite, {
 						verify: !!(isFirstRun && verify),
 						skipGit: !isFirstRun,
 						root,
-						vitePath,
-						viteMajor: parseViteMajor(vitePath),
+						volarPath,
 						workspace,
 					})
 				}
@@ -127,13 +121,8 @@ cli
 				return e
 			}
 		}
-		await setupViteRepo({ ...options, shallow: false })
-		const initialError = await runSuite()
-		if (initialError) {
-			await bisectVite(options.good, runSuite)
-		} else {
-			console.log(`no errors for starting commit, cannot bisect`)
-		}
+		await setupVolarRepo({ ...options, shallow: false })
+		await runSuite()
 	})
 cli.help()
 cli.parse()

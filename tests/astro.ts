@@ -4,9 +4,9 @@ import type { RunOptions } from '../types.d.ts'
 export async function test(options: RunOptions) {
 	await runInRepo({
 		...options,
-		repo: 'withastro/astro',
+		repo: 'withastro/language-tools',
 		branch: 'main',
-		build: 'build:ci',
-		test: 'test:vite-ci',
+		build: 'build',
+		test: 'test:skip-vs',
 	})
 }

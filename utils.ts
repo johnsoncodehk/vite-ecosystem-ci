@@ -3,7 +3,6 @@ import fs from 'fs'
 import { fileURLToPath, pathToFileURL } from 'url'
 import { execaCommand } from 'execa'
 import type {
-	PackageInfo,
 	EnvironmentData,
 	Overrides,
 	ProcessEnv,
@@ -19,7 +18,7 @@ import * as semver from 'semver'
 
 const isGitHubActions = !!process.env.GITHUB_ACTIONS
 
-let vitePath: string
+let volarPath: string
 let cwd: string
 let env: ProcessEnv
 
@@ -60,7 +59,7 @@ export async function $(literals: TemplateStringsArray, ...values: any[]) {
 export async function setupEnvironment(): Promise<EnvironmentData> {
 	const root = dirnameFrom(import.meta.url)
 	const workspace = path.resolve(root, 'workspace')
-	vitePath = path.resolve(workspace, 'vite')
+	volarPath = path.resolve(workspace, 'volar')
 	cwd = process.cwd()
 	env = {
 		...process.env,
@@ -72,7 +71,7 @@ export async function setupEnvironment(): Promise<EnvironmentData> {
 		NO_COLOR: '1',
 	}
 	initWorkspace(workspace)
-	return { root, workspace, vitePath, cwd, env }
+	return { root, workspace, volarPath, cwd, env }
 }
 
 function initWorkspace(workspace: string) {
@@ -95,7 +94,7 @@ function initWorkspace(workspace: string) {
 
 export async function setupRepo(options: RepoOptions) {
 	if (options.branch == null) {
-		options.branch = 'main'
+		options.branch = 'master'
 	}
 	if (options.shallow == null) {
 		options.shallow = true
@@ -198,7 +197,7 @@ export async function runInRepo(options: RunOptions & RepoOptions) {
 		options.skipGit = false
 	}
 	if (options.branch == null) {
-		options.branch = 'main'
+		options.branch = 'master'
 	}
 
 	const {
@@ -261,27 +260,34 @@ export async function runInRepo(options: RunOptions & RepoOptions) {
 	}
 	let overrides = options.overrides || {}
 	if (options.release) {
-		if (overrides.vite && overrides.vite !== options.release) {
-			throw new Error(
-				`conflicting overrides.vite=${overrides.vite} and --release=${options.release} config. Use either one or the other`,
-			)
-		} else {
-			overrides.vite = options.release
-		}
+		overrides['@volar/kit'] ||= options.release
+		overrides['@volar/language-core'] ||= options.release
+		overrides['@volar/language-server'] ||= options.release
+		overrides['@volar/language-service'] ||= options.release
+		overrides['@volar/monaco'] ||= options.release
+		overrides['@volar/snapshot-document'] ||= options.release
+		overrides['@volar/source-map'] ||= options.release
+		overrides['@volar/test-utils'] ||= options.release
+		overrides['@volar/typescript'] ||= options.release
+		overrides['@volar/vscode'] ||= options.release
 	} else {
-		overrides.vite ||= `${options.vitePath}/packages/vite`
-
-		overrides[`@vitejs/plugin-legacy`] ||=
-			`${options.vitePath}/packages/plugin-legacy`
-
-		const vitePackageInfo = await getVitePackageInfo(options.vitePath)
-		// skip if `overrides.rollup` is `false`
-		if (
-			vitePackageInfo.dependencies.rollup?.version &&
-			overrides.rollup !== false
-		) {
-			overrides.rollup = vitePackageInfo.dependencies.rollup.version
-		}
+		overrides['@volar/kit'] ||= `${options.volarPath}/packages/kit`
+		overrides['@volar/language-core'] ||=
+			`${options.volarPath}/packages/language-core`
+		overrides['@volar/language-server'] ||=
+			`${options.volarPath}/packages/language-server`
+		overrides['@volar/language-service'] ||=
+			`${options.volarPath}/packages/language-service`
+		overrides['@volar/monaco'] ||= `${options.volarPath}/packages/monaco`
+		overrides['@volar/snapshot-document'] ||=
+			`${options.volarPath}/packages/snapshot-document`
+		overrides['@volar/source-map'] ||=
+			`${options.volarPath}/packages/source-map`
+		overrides['@volar/test-utils'] ||=
+			`${options.volarPath}/packages/test-utils`
+		overrides['@volar/typescript'] ||=
+			`${options.volarPath}/packages/typescript`
+		overrides['@volar/vscode'] ||= `${options.volarPath}/packages/vscode`
 
 		// build and apply local overrides
 		const localOverrides = await buildOverrides(pkg, options, overrides)
@@ -291,7 +297,7 @@ export async function runInRepo(options: RunOptions & RepoOptions) {
 			...localOverrides,
 		}
 	}
-	await applyPackageOverrides(dir, pkg, overrides)
+	await applyPackageOverrides(dir, pkg, agent, overrides)
 	await beforeBuildCommand?.(pkg.scripts)
 	await buildCommand?.(pkg.scripts)
 	if (test) {
@@ -301,28 +307,21 @@ export async function runInRepo(options: RunOptions & RepoOptions) {
 	return { dir }
 }
 
-export async function setupViteRepo(options: Partial<RepoOptions>) {
-	const repo = options.repo || 'vitejs/vite'
+export async function setupVolarRepo(options: Partial<RepoOptions>) {
+	const repo = options.repo || 'volarjs/volar.js'
 	await setupRepo({
 		repo,
-		dir: vitePath,
-		branch: 'main',
+		dir: volarPath,
+		branch: 'master',
 		shallow: true,
 		...options,
 	})
 
 	try {
-		const rootPackageJsonFile = path.join(vitePath, 'package.json')
+		const rootPackageJsonFile = path.join(volarPath, 'package.json')
 		const rootPackageJson = JSON.parse(
 			await fs.promises.readFile(rootPackageJsonFile, 'utf-8'),
 		)
-		const viteMonoRepoNames = ['@vitejs/vite-monorepo', 'vite-monorepo']
-		const { name } = rootPackageJson
-		if (!viteMonoRepoNames.includes(name)) {
-			throw new Error(
-				`expected  "name" field of ${repo}/package.json to indicate vite monorepo, but got ${name}.`,
-			)
-		}
 		const needsWrite = await overridePackageManagerVersion(
 			rootPackageJson,
 			'pnpm',
@@ -338,12 +337,12 @@ export async function setupViteRepo(options: Partial<RepoOptions>) {
 			}
 		}
 	} catch (e) {
-		throw new Error(`Failed to setup vite repo`, { cause: e })
+		throw new Error(`Failed to setup volar repo`, { cause: e })
 	}
 }
 
 export async function getPermanentRef() {
-	cd(vitePath)
+	cd(volarPath)
 	try {
 		const ref = await $`git log -1 --pretty=format:%H`
 		return ref
@@ -353,8 +352,8 @@ export async function getPermanentRef() {
 	}
 }
 
-export async function buildVite({ verify = false }) {
-	cd(vitePath)
+export async function buildVolar({ verify = false }) {
+	cd(volarPath)
 	const frozenInstall = getCommand('pnpm', 'frozen')
 	const runBuild = getCommand('pnpm', 'run', ['build'])
 	const runTest = getCommand('pnpm', 'run', ['test'])
@@ -362,46 +361,6 @@ export async function buildVite({ verify = false }) {
 	await $`${runBuild}`
 	if (verify) {
 		await $`${runTest}`
-	}
-}
-
-export async function bisectVite(
-	good: string,
-	runSuite: () => Promise<Error | void>,
-) {
-	// sometimes vite build modifies files in git, e.g. LICENSE.md
-	// this would stop bisect, so to reset those changes
-	const resetChanges = async () => $`git reset --hard HEAD`
-
-	try {
-		cd(vitePath)
-		await resetChanges()
-		await $`git bisect start`
-		await $`git bisect bad`
-		await $`git bisect good ${good}`
-		let bisecting = true
-		while (bisecting) {
-			const commitMsg = await $`git log -1 --format=%s`
-			const isNonCodeCommit = commitMsg.match(/^(?:release|docs)[:(]/)
-			if (isNonCodeCommit) {
-				await $`git bisect skip`
-				continue // see if next commit can be skipped too
-			}
-			const error = await runSuite()
-			cd(vitePath)
-			await resetChanges()
-			const bisectOut = await $`git bisect ${error ? 'bad' : 'good'}`
-			bisecting = bisectOut.substring(0, 10).toLowerCase() === 'bisecting:' // as long as git prints 'bisecting: ' there are more revisions to test
-		}
-	} catch (e) {
-		console.log('error while bisecting', e)
-	} finally {
-		try {
-			cd(vitePath)
-			await $`git bisect reset`
-		} catch (e) {
-			console.log('Error while resetting bisect', e)
-		}
 	}
 }
 
@@ -466,6 +425,7 @@ async function overridePackageManagerVersion(
 export async function applyPackageOverrides(
 	dir: string,
 	pkg: any,
+	agent: Agent,
 	overrides: Overrides = {},
 ) {
 	const useFileProtocol = (v: string) =>
@@ -479,10 +439,6 @@ export async function applyPackageOverrides(
 	)
 	await $`git clean -fdxq` // remove current install
 
-	const agent = await detect({ cwd: dir, autoInstall: false })
-	if (!agent) {
-		throw new Error(`failed to detect packageManager in ${dir}`)
-	}
 	// Remove version from agent string:
 	// yarn@berry => yarn
 	// pnpm@6, pnpm@7 => pnpm
@@ -491,13 +447,6 @@ export async function applyPackageOverrides(
 	await overridePackageManagerVersion(pkg, pm)
 
 	if (pm === 'pnpm') {
-		if (!pkg.devDependencies) {
-			pkg.devDependencies = {}
-		}
-		pkg.devDependencies = {
-			...pkg.devDependencies,
-			...overrides, // overrides must be present in devDependencies or dependencies otherwise they may not work
-		}
 		if (!pkg.pnpm) {
 			pkg.pnpm = {}
 		}
@@ -544,19 +493,6 @@ export function dirnameFrom(url: string) {
 	return path.dirname(fileURLToPath(url))
 }
 
-export function parseViteMajor(vitePath: string): number {
-	const content = fs.readFileSync(
-		path.join(vitePath, 'packages', 'vite', 'package.json'),
-		'utf-8',
-	)
-	const pkg = JSON.parse(content)
-	return parseMajorVersion(pkg.version)
-}
-
-export function parseMajorVersion(version: string) {
-	return parseInt(version.split('.', 1)[0], 10)
-}
-
 async function buildOverrides(
 	pkg: any,
 	options: RunOptions,
@@ -589,8 +525,7 @@ async function buildOverrides(
 		const { dir } = await buildDef.build({
 			root: options.root,
 			workspace: options.workspace,
-			vitePath: options.vitePath,
-			viteMajor: options.viteMajor,
+			volarPath: options.volarPath,
 			skipGit: options.skipGit,
 			release: options.release,
 			verify: options.verify,
@@ -603,23 +538,4 @@ async function buildOverrides(
 		}
 	}
 	return overrides
-}
-
-/**
- * 	use pnpm ls to get information about installed dependency versions of vite
- * @param vitePath - workspace vite root
- */
-async function getVitePackageInfo(vitePath: string): Promise<PackageInfo> {
-	try {
-		// run in vite dir to avoid package manager mismatch error from corepack
-		const current = cwd
-		cd(`${vitePath}/packages/vite`)
-		const lsOutput = $`pnpm ls --json`
-		cd(current)
-		const lsParsed = JSON.parse(await lsOutput)
-		return lsParsed[0] as PackageInfo
-	} catch (e) {
-		console.error('failed to retrieve vite package infos', e)
-		throw e
-	}
 }
