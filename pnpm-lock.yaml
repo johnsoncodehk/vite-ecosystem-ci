@@ -22,12 +22,6 @@ devDependencies:
   '@antfu/ni':
     specifier: ^0.21.12
     version: 0.21.12
-  '@types/node':
-    specifier: ^20.11.17
-    version: 20.11.17
-  '@types/semver':
-    specifier: ^7.5.7
-    version: 7.5.7
   semver:
     specifier: ^7.6.0
     version: 7.6.0
@@ -37,6 +31,12 @@ devDependencies:
   typescript:
     specifier: ^5.3.3
     version: 5.3.3
+  typings/node:
+    specifier: npm:@types/node@^20.11.17
+    version: /@types/node@20.11.17
+  typings/semver:
+    specifier: npm:@types/semver@^7.5.7
+    version: /@types/semver@7.5.7
 
 packages:
 
