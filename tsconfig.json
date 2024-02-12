@@ -17,6 +17,9 @@
 		"allowSyntheticDefaultImports": true,
 		"lib": ["esnext"],
 		"sourceMap": true,
-		"typeRoots": ["./node_modules/typings"]
+		"typeRoots": ["./node_modules/typings"],
+		"paths": {
+			"semver": ["./node_modules/typings/semver/index.d.ts"]
+		}
 	}
 }
