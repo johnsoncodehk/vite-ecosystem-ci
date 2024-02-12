@@ -253,34 +253,14 @@ export async function runInRepo(options: RunOptions & RepoOptions) {
 	}
 	let overrides = options.overrides || {}
 	if (options.release) {
-		overrides['@volar/kit'] ||= options.release
-		overrides['@volar/language-core'] ||= options.release
-		overrides['@volar/language-server'] ||= options.release
-		overrides['@volar/language-service'] ||= options.release
-		overrides['@volar/monaco'] ||= options.release
-		overrides['@volar/snapshot-document'] ||= options.release
-		overrides['@volar/source-map'] ||= options.release
-		overrides['@volar/test-utils'] ||= options.release
-		overrides['@volar/typescript'] ||= options.release
-		overrides['@volar/vscode'] ||= options.release
+		for (const pkg of fs.readdirSync(path.join(options.volarPath, 'packages'))) {
+			overrides[`@volar/${pkg}`] ||= options.release
+		}
 	} else {
-		overrides['@volar/kit'] ||= `${options.volarPath}/packages/kit`
-		overrides['@volar/language-core'] ||=
-			`${options.volarPath}/packages/language-core`
-		overrides['@volar/language-server'] ||=
-			`${options.volarPath}/packages/language-server`
-		overrides['@volar/language-service'] ||=
-			`${options.volarPath}/packages/language-service`
-		overrides['@volar/monaco'] ||= `${options.volarPath}/packages/monaco`
-		overrides['@volar/snapshot-document'] ||=
-			`${options.volarPath}/packages/snapshot-document`
-		overrides['@volar/source-map'] ||=
-			`${options.volarPath}/packages/source-map`
-		overrides['@volar/test-utils'] ||=
-			`${options.volarPath}/packages/test-utils`
-		overrides['@volar/typescript'] ||=
-			`${options.volarPath}/packages/typescript`
-		overrides['@volar/vscode'] ||= `${options.volarPath}/packages/vscode`
+		const { version } = JSON.parse(await fs.promises.readFile(path.join(options.volarPath, 'lerna.json'), 'utf-8'))
+		for (const pkg of fs.readdirSync(path.join(options.volarPath, 'packages'))) {
+			overrides[`@volar/${pkg}`] ||= `${options.volarPath}/packages/${pkg}/volar-${pkg}-${version}.tgz`
+		}
 
 		// build and apply local overrides
 		const localOverrides = await buildOverrides(pkg, options, overrides)
@@ -354,6 +334,10 @@ export async function buildVolar({ verify = false }) {
 	await $`${runBuild}`
 	if (verify) {
 		await $`${runTest}`
+	}
+	for (const pkg of fs.readdirSync(path.join(volarPath, 'packages'))) {
+		cd(path.join(volarPath, 'packages', pkg))
+		await $`npm pack`
 	}
 }
 
