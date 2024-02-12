@@ -44,9 +44,9 @@ See [docs/pr-comment-setup.md](./docs/pr-comment-setup.md) for how to setup this
 
 # reporting results
 
-<!-- ## Discord
+## Discord
 
-Results are posted automatically to `#ecosystem-ci` on [vite discord](https://chat.vitejs.dev/) -->
+Results are posted automatically to `#ecosystem-ci` on [volar discord](https://discord.com/invite/7qfYWRrUAM)
 
 ### on your own server
 
