@@ -93,9 +93,6 @@ function initWorkspace(workspace: string) {
 }
 
 export async function setupRepo(options: RepoOptions) {
-	if (options.branch == null) {
-		options.branch = 'master'
-	}
 	if (options.shallow == null) {
 		options.shallow = true
 	}
@@ -195,9 +192,6 @@ export async function runInRepo(options: RunOptions & RepoOptions) {
 	}
 	if (options.skipGit == null) {
 		options.skipGit = false
-	}
-	if (options.branch == null) {
-		options.branch = 'master'
 	}
 
 	const {

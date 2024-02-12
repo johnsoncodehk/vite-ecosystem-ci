@@ -38,8 +38,8 @@ export interface CommandOptions {
 
 export interface RepoOptions {
 	repo: string
+	branch: string
 	dir?: string
-	branch?: string
 	tag?: string
 	commit?: string
 	shallow?: boolean

@@ -7,6 +7,6 @@ export async function test(options: RunOptions) {
 		agent: 'npm',
 		repo: 'mdx-js/mdx-analyzer',
 		branch: 'main',
-		test: 'test',
+		test: 'test-api',
 	})
 }
