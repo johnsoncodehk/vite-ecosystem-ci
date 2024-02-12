@@ -190,7 +190,7 @@ jobs:
 
             // for simplity, we only take the latest completed scheduled run
             // otherwise we would have to check the inputs for every maunally triggerred runs, which is an overkill
-            const latestScheduledRun = workflow_runs.find(run => run.event === "schedule" && run.status === "completed")
+            const latestScheduledRun = workflow_runs.find(run => run.status === "completed")
 
             // get the jobs for the latest scheduled run
             const { data: { jobs: scheduledJobs } } = await github.rest.actions.listJobsForWorkflowRun({
