@@ -12,7 +12,8 @@ import type {
 } from './types.d.ts'
 import { detect, AGENTS, Agent, getCommand } from '@antfu/ni'
 import actionsCore from '@actions/core'
-import * as semver from 'semver'
+// @ts-expect-error TODO
+const semver: typeof import('./node_modules/typings/semver/index.d.ts') = await import('semver')
 
 const isGitHubActions = !!process.env.GITHUB_ACTIONS
 
