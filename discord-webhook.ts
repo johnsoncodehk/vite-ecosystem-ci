@@ -131,10 +131,7 @@ async function fetchJobs() {
 		headers: {
 			Accept: 'application/vnd.github.v3+json',
 			...(process.env.GITHUB_TOKEN
-				? {
-						Authorization: `token ${process.env.GITHUB_TOKEN}`,
-						// eslint-disable-next-line no-mixed-spaces-and-tabs
-					}
+				? { Authorization: `token ${process.env.GITHUB_TOKEN}` }
 				: undefined),
 		},
 	})

@@ -10,10 +10,8 @@ import type {
 	RunOptions,
 	Task,
 } from './types.d.ts'
-//eslint-disable-next-line n/no-unpublished-import
 import { detect, AGENTS, Agent, getCommand } from '@antfu/ni'
 import actionsCore from '@actions/core'
-// eslint-disable-next-line n/no-unpublished-import
 import * as semver from 'semver'
 
 const isGitHubActions = !!process.env.GITHUB_ACTIONS
@@ -427,7 +425,6 @@ export async function applyPackageOverrides(
 	// remove boolean flags
 	overrides = Object.fromEntries(
 		Object.entries(overrides)
-			//eslint-disable-next-line @typescript-eslint/no-unused-vars
 			.filter(([key, value]) => typeof value === 'string')
 			.map(([key, value]) => [key, useFileProtocol(value as string)]),
 	)
