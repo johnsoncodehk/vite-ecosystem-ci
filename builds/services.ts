@@ -4,6 +4,7 @@ import type { RunOptions } from '../types.d.ts'
 export async function build(options: RunOptions) {
 	return runInRepo({
 		...options,
+		branch: 'master',
 		repo: 'volarjs/services',
 		build: 'build',
 	})
