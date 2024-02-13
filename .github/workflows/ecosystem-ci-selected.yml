@@ -36,6 +36,7 @@ on:
         options:
           - astro
           - mdx
+          - services
           - vue
 jobs:
   execute-selected-suite:

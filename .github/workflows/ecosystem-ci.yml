@@ -42,6 +42,7 @@ jobs:
         suite:
           - astro
           - mdx
+          - services
           - vue
       fail-fast: false
     steps:
